@@ -738,15 +738,15 @@ There’s one more class which is very important for autograd implementation - a
 
 \texttt{Tensor} and \texttt{Function} are interconnected and build up an acyclic graph, that encodes a complete history of computation. Each tensor has a \texttt{.grad\_fn} attribute that references a Function that has created the Tensor (except for Tensors created by the user - their \texttt{grad\_fn} is \texttt{None}).
 
-If you want to compute the derivatives, you can call \texttt{.backward()} on a \texttt{Tensor}. If Tensor is a scalar (i.e. it holds a one element data), you don’t need to specify any arguments to \texttt{backward()}, however if it has more elements, you need to specify a gradient argument that is a tensor of matching shape.
+If you want to compute the derivatives, you can call \texttt{.backward()} on a \texttt{Tensor}. If Tensor is a scalar (i.e. it holds a one element data), you don’t need to specify any arguments to \texttt{backward()}, however if it has more elements, you need to specify a gradient argument that is a tensor of matching shape. 
 
 Typical pipeline:
-\begin{lstlisting}[language=Python]
+\begin{verbatim}
 x.requires_grad_()
 out = function(x)
 out.backward()
-gradient = x.grad
-\end{lstlisting}
+gradient = x.grad    
+\end{verbatim}
 
 \newpage
 \section{Human Connectome}
