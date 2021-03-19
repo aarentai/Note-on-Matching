@@ -541,7 +541,7 @@ Given $K_0=K-\frac{1}{n}\mathrm{tr}(K)I, K=\log(g_0^{-1}g_1)$ and $I,K,K_0\in \m
 
 \section{Generating Diffeomorphism}
 \subsection{Divergence free vector field\cite{macedo}}
-Kernel of divergence free $K_{df}$ is defined as below, and the vector fields constructed from linear combination of these kernel is divergence-free. We only discuss the case of $n=2$ here and $\mathbf{p_1}=(x_1,y_1)^T, \mathbf{p_2}=(x_2,y_2)^T$.
+Kernel of divergence free $K_{df}$\footnote{Code can be found at \url{https://github.com/aarentai/Metric-Matching-2D/blob/main/GenDiffeo.py}} is defined as below, and the vector fields constructed from linear combination of these kernel is divergence-free. We only discuss the case of $n=2$ here and $\mathbf{p_1}=(x_1,y_1)^T, \mathbf{p_2}=(x_2,y_2)^T$.
 \begin{align*}
     K_{df}(\mathbf{p_1},\mathbf{p_2})&=\frac{1}{\sigma^2}e^{-\frac{\|\mathbf{p_1}-\mathbf{p_2}\|^2}{2\sigma^2}}\left[\left(\frac{\mathbf{p_1}-\mathbf{p_2}}{\sigma}\right)\left(\frac{\mathbf{p_1}-\mathbf{p_2}}{\sigma}\right)^T+\left((n-1)-\frac{\|\mathbf{p_1}-\mathbf{p_2}\|^2}{\sigma^2}\right)\cdot I\right]\\
     &=\frac{1}{\sigma^2}e^{-\frac{\|\mathbf{p_1}-\mathbf{p_2}\|^2}{2\sigma^2}}
@@ -726,27 +726,6 @@ where $D$ denotes the Jacobian matrix, and the operator $\mathrm{ad}^*$ is the d
 \end{equation*}
 
 By integrating equation (4) forward in time, we generate a time-varying velocity $v_t:[0,1]\rightarrow V$, which itself is subsequently integrated in time by rule $d\phi(x,t)dt=v_t\circ\phi_t(x)$ to arrive at the geodesic path, $\phi(x,t)\in\mathrm{Diff}^s(\Omega)$.
-
-\subsection{PyTorch Tutorial: AUTOGRAD}
-\texttt{torch.Tensor} is the central class of the package. If you set its attribute \texttt{.requires\_grad} as \texttt{True}, it starts to track all operations on it. When you finish your computation you can call \texttt{.backward()} and have all the gradients computed automatically. The gradient for this tensor will be accumulated into \texttt{.grad} attribute.
-
-To stop a tensor from tracking history, you can call \texttt{.detach()} to detach it from the computation history, and to prevent future computation from being tracked.
-
-To prevent tracking history (and using memory), you can also wrap the code block in \texttt{with torch.no\_grad():}. This can be particularly helpful when evaluating a model because the model may have trainable parameters with \texttt{requires\_grad=True}, but for which we don’t need the gradients.
-
-There’s one more class which is very important for autograd implementation - a \texttt{Function}.
-
-\texttt{Tensor} and \texttt{Function} are interconnected and build up an acyclic graph, that encodes a complete history of computation. Each tensor has a \texttt{.grad\_fn} attribute that references a Function that has created the Tensor (except for Tensors created by the user - their \texttt{grad\_fn} is \texttt{None}).
-
-If you want to compute the derivatives, you can call \texttt{.backward()} on a \texttt{Tensor}. If Tensor is a scalar (i.e. it holds a one element data), you don’t need to specify any arguments to \texttt{backward()}, however if it has more elements, you need to specify a gradient argument that is a tensor of matching shape. 
-
-Typical pipeline:
-\begin{verbatim}
-x.requires_grad_()
-out = function(x)
-out.backward()
-gradient = x.grad    
-\end{verbatim}
 
 \newpage
 \section{Human Connectome}
