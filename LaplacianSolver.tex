@@ -530,13 +530,13 @@ And the $L,W$ below satisfy the equation above
 \end{align*}
 
 \subsubsection{Remark on Calculating Ebin Distance}
-Given $K_0=K-\frac{1}{n}\mathrm{tr}(K)I, K=\log(g_0^{-1}g_1)$ and $n=2$
+Given $K_0=K-\frac{1}{n}\mathrm{tr}(K)I, K=\log(g_0^{-1}g_1)$ and $I,K,K_0\in \mathbb{R}^{n\times n}$
 \begin{align*}
     K_0^2&=K^2-\frac{2}{n}\mathrm{tr}(K)K+\frac{1}{n^2}\mathrm{tr}^2(K)I\\
     \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{2}{n}\mathrm{tr}(K)\mathrm{tr}(K)+\frac{1}{n^2}\mathrm{tr}^2(K)\mathrm{tr}(I)\\
-    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{2}{2}\mathrm{tr}(K)\mathrm{tr}(K)+\frac{1}{2^2}\mathrm{tr}^2(K)\cdot2&&\triangleright n=2,\mathrm{tr}(I)=2\\
-    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{1}{2}\mathrm{tr}^2(K)\\
-    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{1}{2}\log^2(\det(g_0^{-1}g_1))&&\triangleright \mathrm{tr}(\log(K))=\log(\det(K))\cite{jacobi}
+    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{2}{n}\mathrm{tr}(K)\mathrm{tr}(K)+\frac{1}{n^2}\mathrm{tr}^2(K)\cdot n&&\triangleright \mathrm{tr}(I)=n\\
+    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{1}{n}\mathrm{tr}^2(K)\\
+    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{1}{n}\log^2(\det(g_0^{-1}g_1))&&\triangleright \mathrm{tr}(\log(K))=\log(\det(K))\cite{jacobi}
 \end{align*}
 
 \section{Generating Diffeomorphism}
