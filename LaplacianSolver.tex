@@ -18,10 +18,11 @@
 \usepackage{listings} 
 \usepackage{subcaption}
 \usepackage{algorithm,algpseudocode}
+\renewcommand{\baselinestretch}{1.5}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm} 
-\renewcommand{\baselinestretch}{2}
+% \renewcommand{\baselinestretch}{2}
 \setcounter{MaxMatrixCols}{20}
 \algnewcommand{\Inputs}[1]{%
   \State \textbf{Inputs:}
@@ -45,246 +46,313 @@
 
 \title{Note on Matching}
 \author{Haocheng Dai}
-\date{\today}
+\date{}
 \DeclareUnicodeCharacter{2212}{-}
 \begin{document}
 \maketitle
 
-\section{Metric}
-\subsection{Information metric}
-In information geometry, the Fisher information metric is a particular Riemannian metric which can be defined on a smooth statistical manifold, i.e., a smooth manifold whose points are probability measures defined on a common probability space. It can be used to calculate the informational difference between measurements.
 
-\section{Density Matching}
-\subsection{Sobolev $\Dot H^1$ metric and Fisher-Rao metric}
-The right-invariant Sobolev $\Dot H^1$ metric on the quotient space Dens($M$) of probability densities on $M$ coincides with the Fisher-Rao metric on any $k$-dimensional statistical submanifold of Dens($M$)(Theorem 4.4 in \cite{khesin}).
+\section{Large Deformation}
+\subsection{Landmark Matching\cite{joshi,miller,johnson}}
+\subsubsection{Problem formulation}
+Assuming that there is a set of landmarks $\{(x_n,y_n)\}$, where $x_n$ and $y_n$ are  our approach is to construct diffeomorphisms $\phi:\Omega\rightarrow\Omega$, such that
+\begin{align}
+    \hat{v}(x,t)&=\argmin_vE(v)+D(\phi(\cdot,1))\\ \nonumber
+    &=\argmin_v \int^1_0\sum_{n=1}^N\|Lv(x_n,t)\|^2_{L^2}dt+\sum^N_{n=1}[y_n-\phi(x_n,1)]^T\Sigma^{-1}_N[y_n-\phi(x_n,1)],
+\end{align}
+where
+\begin{align*}
+    \phi(x,0)&=x\\
+    \phi(x,1)&=x+\int^1_0\Dot{\phi}(x,t)dt\\
+    \Dot{\phi}(x,t)&=\frac{d\phi(x,t)}{dt}=v(\phi(x,t),t)=v_t\circ\phi_t
+\end{align*}
 
-\begin{definition}
-The Fisher-Rao metric is the Riemannian metric on $\mathrm{Dens(M)}$ given by
+The final time diffeomorphism $\phi(\cdot,1)$ is controlled via the velocity field $v(\cdot,t),t\in[0,1]$. Diffeomorphic landmark transformations are constructed by forcing the velocity fields to minimize quadratic energetic on $\Omega\times[0,1]$, as shown below
+\begin{align*}
+    E(v)&=\int_0^1\int_\Omega\|Lv(x,t)\|^2_{L^2}dxdt\\
+    &=\int_0^1\int_\Omega\sum^{d}_{q=1}|(-\nabla^2+c)v_q(x,t)|^2dxdt
+\end{align*} 
+since $L$ is in form of $L=I\cdot(-\nabla^2+c)$, where $I$ is the identity matrix, $d$ is the dimension of $v$ and $c$ is a constant.
+
+The squared error distance for landmark matching is given by
 \begin{equation*}
-    G_\rho(\Dot\rho,\Dot\rho)=\frac{1}{4}\int_M\frac{\Dot{\rho}^2}{\rho}dx
+    D(\phi(\cdot,1))=\sum^N_{n=1}[y_n-\phi(x_n,1)]^T\Sigma^{-1}_n[y_n-\phi(x_n,1)],
 \end{equation*}
-\end{definition}
+where $\Sigma_N$ is the error covariance.
 
-\begin{remark}
-Given $\rho_0,\rho_1\in\mathrm{Dens(M)}$ with the same total mass, the Riemannian distance w.r.t. the Fisher-Rao metric is given by
+\subsubsection{Inexact Landmark Matching}
+$L$ is a constant coefficient matrix differential operator with $d\times d$ matrix Green's function $G(x,y)$ which is continuous in both $x$ and $y$. Let $K(x,y)=GG^\dagger(x,y)=(2/\sqrt{2\pi c})e^{-\sqrt{c}\|x-y\|}$, where $K$ is a $d\times d$ matrix function. $K$ is the Green's kernel\cite{ref2}. 
+Given $N$ pairs of landmarks $\{\phi(x_i,1),x_i\}$, we are going to generate the vector field in form of
 \begin{equation*}
-    \mathrm{dist}^2_{FR}(\rho_0,\rho_1)=\arccos\left(\int_M\sqrt{\frac{\rho_1}{\rho_0}}\rho_0\right)
+    \hat{v}(x,t)=\sum^N_iK(\phi(x_i,t),x)\cdot w_i
 \end{equation*}
-$\rho(t)$ is the unique Fisher-Rao geodesic connecting $\rho_0$ and $\rho$, which can be calculated as
+under the $N$ constraints that
+\begin{align*}
+    \hat{v}(x_1,t)&=\sum^N_iK(\phi(x_i,t),x_1)\cdot w_i\\
+    &\vdots\\
+    \hat{v}(x_N,t)&=\sum^N_iK(\phi(x_i,t),x_N)\cdot w_i
+\end{align*}
+
+Incorporating all the constraints above in a matrix form, we can have the equation below
 \begin{equation*}
-    \rho(t)=\left(\frac{\sin((1-t)\theta)}{\sin(\theta)}+\frac{\sin(t\theta)}{\sin(\theta)}\sqrt{\frac{\rho}{\rho_0}}\right)^2\rho_0
+    \underbrace{
+    \begin{pmatrix}
+    K(\phi(x_1,t),\phi(x_1,t))&\cdots&K(\phi(x_1,t),\phi(x_N,t))\\
+    \vdots&\ddots&\vdots\\
+    K(\phi(x_N,t),\phi(x_1,t))&\cdots&K(\phi(x_N,t),\phi(x_N,t))
+    \end{pmatrix}}_{\mathbb{K}}
+    \cdot
+    \underbrace{
+    \begin{pmatrix}
+    w_1\\
+    \vdots\\
+    w_N
+    \end{pmatrix}}_{\mathbf{W}}
+    =
+    \underbrace{
+    \begin{pmatrix}
+    \phi(x_1,t)-x_1\\
+    \vdots\\
+    \phi(x_N,t)-x_N\\
+    \end{pmatrix}}_{\mathbf{D}}
 \end{equation*}
-where $\theta$ is the Riemannian distance w.r.t the Fisher-Rao metric
-\begin{equation*}
-    \theta=\mathrm{dist}_{FR}(\rho,\rho_0)=\arccos\int_M\sqrt{\frac{\rho}{\rho_0}}\rho_0
-\end{equation*}
-\end{remark}
 
-\begin{remark}
-The Fisher-Rao metric is the unique Riemannian metric on the space of probability densities that is invariant under the action of the diffeomorphism group
+Therefore, we can derive the vector field in form of
 \begin{align*}
-    \mathrm{dist}^2_{FR}(I_0dx,I_1dx)=d^2_{FR}(\phi_*(I_0dx),\phi_*(I_1dx)) &&\forall \phi\in \mathrm{Diff}(\Omega)
+    \hat{v}(x,t)&=
+    \begin{pmatrix}
+    K(\phi(x_1,t),x) & \cdots & K(\phi(x_N,t),x)
+    \end{pmatrix}\cdot
+    \begin{pmatrix}
+    w_1\\
+    \vdots\\
+    w_N
+    \end{pmatrix}\\
+    &=
+    \underbrace{
+    \begin{pmatrix}
+    K(\phi(x_1,t),x) & \cdots & K(\phi(x_N,t),x)
+    \end{pmatrix}}_{d\times Nd}
+    \cdot
+    \underbrace{
+    \begin{pmatrix}
+    K(\phi(x_1,t),\phi(x_1,t))&\cdots&K(\phi(x_1,t),\phi(x_N,t))\\
+    \vdots&\ddots&\vdots\\
+    K(\phi(x_N,t),\phi(x_1,t))&\cdots&K(\phi(x_N,t),\phi(x_N,t))
+    \end{pmatrix}^{-1}}_{Nd\times Nd}
+    \cdot
+    \underbrace{
+    \begin{pmatrix}
+    \phi(x_1,t)\\
+    \vdots\\
+    \phi(x_N,t)
+    \end{pmatrix}}_{Nd\times d}
 \end{align*}
-\end{remark}
-
-\begin{remark}
-As the figure below shows, Hellinger distance $\mathrm{dist}_{Hel}(\lambda, \nu)$ is extrinsic, while the spherical Hellinger distance is intrinsic, which denoted as $\mathrm{dist}_{\Dot{H}^1}(\lambda, \nu)$. When seeing from a microscopic view, $\mathrm{dist}_{Hel}(\lambda, \nu)$ and $\mathrm{dist}_{\Dot{H}^1}(\lambda, \nu)$ can be regarded as the same.
-\begin{figure}[H]
-\centering
-\includegraphics[scale=0.3]{figure/hellinger.png}
-\caption{Hellinger distance and $\Dot H^1$ distance(spherical Hellinger distance)}
-\end{figure}
-\end{remark}
-
-\begin{remark}\label{remark:fr}
-Fisher-Rao distance and Hellinger distance are different, which are intrinsic and extrinsic, respectively, but they are magically equivalent. So we are using Hellinger distance to calculate energy in 2.2.
-\end{remark}
-
-\subsection{Exact density matching}
-Given a probability distribution $I\in\mathrm{Prob}(M)$, find a diffeomorphism $\phi\in\mathrm{Diff}(M)$ that minimizes the energy function
-\begin{align*}
-    E(\phi)=\mathrm{dist}^2_{G^I}(\mathrm{id},\phi)\\
-    \text{subject to }\phi_*I_0=I
-\end{align*}
-where $\phi_*$ is the push-forward of $\phi$ acting on densities $\phi_*I_0=|D\phi^{-1}|I_0\circ\phi^{-1}$, $G^I$ is the information metric, as shown below
-\begin{align*}
-    G^I_\phi(U,V)=-\int_M\langle\Delta u,v\rangle_g \mathrm{vol}+\lambda\sum^k_{i=1}\left(\int_M\langle u,\xi_i\rangle_g \mathrm{vol}\cdot\int_M\langle v,\xi_i\rangle_g \mathrm{vol}\right)\\
-    G^I_\mathrm{id}(u,v)=-\int_M\langle\Delta u,v\rangle_g \mathrm{vol}+\lambda\sum^k_{i=1}\left(\int_M\langle u,\xi_i\rangle_g \mathrm{vol}\cdot\int_M\langle v,\xi_i\rangle_g \mathrm{vol}\right)
-\end{align*}
-where $U=u\circ\phi, V=v\circ\phi, \lambda>0, \Delta$ is the Laplace-de Rham operator lifted to vector fields, and $\xi_1,\cdots,\xi_k$ is an orthonormal basis of the harmonic 1-form on $M$.
-
-The metric $G^I$ has the property of right-invariance: if $U,V\in T_\phi\mathrm{Diff}(M)$ then
-\begin{align*}
-    G^I_\phi(U,V)=G^I_{\phi\circ\psi}(U\circ\psi,V\circ\psi) && \forall\psi\in\mathrm{Diff}(M)
-\end{align*}
-
-
-
-\begin{algorithm}  
-\caption{Optimal Information Transport}\label{algo1}
-    \begin{algorithmic}
-        \State $K=\mathbb{Z}^+$
-        \State $\varepsilon=1/K$
-        \State $\phi_0=\mathrm{id}$
-        \For{$k=1:iternum$}
-            \State $t=\frac{k}{K}$
-            \State $\theta=\arccos\int_M\sqrt{\frac{\mu}{\mu_0}}\mu_0$ \Comment{Riemannian distance w.r.t the Fisher-Rao metric}
-            \State $\mu(t)=\left(\frac{\sin((1-t)\theta)}{\sin(\theta)}+\frac{\sin(t\theta)}{\sin(\theta)}\sqrt{\frac{\mu}{\mu_0}}\right)^2\mu_0$ \Comment{Compute Fisher-Rao geodesic}
-            \State $\Dot{\mu}(t)=\frac{d}{dt}\mu(t)$ \Comment{Compute velocity}
-            \State $f_k=\Delta^{-1}(\frac{\Dot{\mu}(t)}{\mu(t)}\circ\phi_k)$ \Comment{Solve the Poisson equation}
-            \State $v_k=\nabla f_k$ \Comment{Compute the gradient of vector field}
-            \State $\psi_k=\mathrm{id}-\varepsilon v_k$ \Comment{Construct approximations $\psi_k$}
-            \State $\phi_{k+1}=\phi_k\circ\psi_k$ \Comment{Update the diffeomorphism}
-        \EndFor
-        \State \Return{$\phi$}
-    \end{algorithmic}  
-\end{algorithm}  
-
-\subsection{Inexact density matching}
-Given $I_0,I_1\in\mathrm{Dens}(M)$, find a diffeomorphism $\phi\in\mathrm{Diff}(M)$ that minimizes the energy function
-\begin{align*}
-    E(\phi)&=\sigma\mathrm{dist}_{FR}^2(\phi_*f,f\circ\phi^{-1})+\Bar{\mathrm{dist}}_{FR}^2(\phi_*I_0,I_1)\\  
-     &\triangleright\text{Hellinger distance(remark [\ref{remark:fr}]): }\mathrm{dist}_{FR}^2(I_0,I_1)=\int_\Omega(\sqrt{I_0}-\sqrt{I_1})^2dx\\
-     &=\int_\Omega(\sqrt{\phi_*f}-\sqrt{f\circ\phi^{-1}})^2dx+\int_\Omega(\sqrt{\phi_*I_0}-\sqrt{I_1})^2dx\\
-     &=\int_\Omega(\sqrt{|D\phi|f\circ\phi^{-1}}-\sqrt{f\circ\phi^{-1}})^2dx+\int_\Omega(\sqrt{|D\phi^{-1}|I_0\circ\phi^{-1}}-\sqrt{I_1})^2dx\\
-     &=\int_\Omega(\sqrt{|D\phi|}-1)^2f\circ\phi^{-1}dx+\int_\Omega(\sqrt{|D\phi^{-1}|I_0\circ\phi^{-1}}-\sqrt{I_1})^2dx\\
-     &=\int_\Omega(1-\sqrt{|D\phi|})^2fdy+\int_\Omega(\sqrt{I_0}-\sqrt{|D\phi|I_1\circ\phi})^2dy\\
-     &\triangleright\text{change of variables: }x\rightarrow\phi(y),dx\rightarrow|D\phi|dy,|D\phi^{-1}|\rightarrow\frac{1}{|D\phi|},
-\end{align*}
-where the first term is a regularity measure and the second is the similarity measure. The parameter $\sigma$ is balancing the two criteria.
-
-\subsection{How to calculate the gradient of the energy function}
+where the minimized velocity fields $\Dot{\hat{\phi}}(x_n,t)$ can be expressed as below
 \begin{equation}
-    E(\phi)=\int_\Omega(1-\sqrt{|D\phi|})^2fdy+\int_\Omega(\sqrt{I_0}-\sqrt{|D\phi|I_1\circ\phi})^2dy\label{energy}
+    \Dot{\hat{\phi}}(x_n,t)=\argmin_{\Dot{\phi}(x_n,\cdot)}\int^1_0\sum^N_{ij=1}\Dot{\phi}(x_i,t)\mathbb{K}(\phi(t))^{-1}_{ij}\Dot{\phi}(x_j,t)dt+\sum^N_{n=1}[y_n-\phi(x_n,1)]^T\Sigma^{-1}_N[y_n-\phi(x_n,1)]
 \end{equation}
 
-Our approach to minimize the functional of Eq.(\ref{energy}) is to use a simple Euler integration of the discretization of the gradient flow
+Assuming velocities are constant within the quantized time intervals, for $t\in[t_{m-1},t_m)$, we have 
 \begin{equation*}
-    \Dot{\phi}=-\nabla^{G^I}E(\phi)
+    \Dot{\phi}(x_n,t)\approx\frac{\phi(x_n,t_m)-\phi(x_n,t_{m-1})}{\epsilon}
 \end{equation*}
+where $\epsilon$ is the fixed time step size, such that $t_m=m\epsilon$. 
 
-\begin{remark}
-The relationship between the gradient w.r.t. information metric and $L^2$ metric is that
-\begin{equation*}
-    \left<\nabla^{G^I}E,v\right>_{H^1}=\left<-\Delta(\nabla^{G^I}E),v\right>_{L^2}
-\end{equation*}
-Therefore the information metric above can be written more specifically as 
-\begin{equation*}
-    G^I_\phi(U,V)=\int_\Omega\left<-\Delta u,v\right>_{L^2}dx,
-\end{equation*}
-where $u=\nabla^{G^I}E$ is the $G^I-$gradient.
-\end{remark}
+So the Eq.(2) can have the new form of
+\begin{align}
+    \hat{\phi}(x_n,t_m)=\argmin& \frac{1}{\epsilon^2}\sum^M_{m=1}\sum^N_{ij=1}[\phi(x_i,t_m)-\phi(x_i,t_{m-1})]^T\left(\int^{t_m}_{t_{m-1}}\mathbb{K}(\phi(t))^{-1}_{ij}dt\right)[\phi(x_j,t_m)-\phi(x_j,t_{m-1})]\\\nonumber
+    &+\sum^N_{n=1}[y_n-\phi(x_n,1)]^T\Sigma^{-1}_N[y_n-\phi(x_n,1)]
+\end{align}
 
-The $G^I-$gradient of Eq.(\ref{energy}) is given by
+\subsubsection{Gradient Algorithm}
+The update rule for minimizing Eq.(3) is shown as below
 \begin{equation*}
-    \nabla^{G^I}E=-\Delta^{-1}\left[-\nabla\left(\left(1-\sqrt{|D\phi^{-1}|}\right)f\circ\phi^{-1}\right)-\sqrt{|D\phi^{-1}|I_0\circ\phi^{-1}}\nabla\left(\sqrt{I_1}\right)+\nabla\left(\sqrt{|D\phi^{-1}|I_0\circ\phi^{-1}}\right)\sqrt{I_1}\right]
+    \phi^{(l+1)}(x_n,t_m)=
+    \begin{pmatrix}
+    \phi_1^{(l)}(x_n,t_m)\\
+    \phi_2^{(l)}(x_n,t_m)\\
+    \phi_3^{(l)}(x_n,t_m)\\
+    \end{pmatrix}-
+    \Delta\times
+    \begin{pmatrix}
+    \frac{\partial}{\partial\phi_1(x_n,t_m)}P(\phi^{(l)}(1))+\frac{\partial}{\partial\phi_1(x_n,t_m)}D(\phi^{(l)}(1))\\
+    \frac{\partial}{\partial\phi_2(x_n,t_m)}P(\phi^{(l)}(1))+\frac{\partial}{\partial\phi_2(x_n,t_m)}D(\phi^{(l)}(1))\\
+    \frac{\partial}{\partial\phi_3(x_n,t_m)}P(\phi^{(l)}(1))+\frac{\partial}{\partial\phi_3(x_n,t_m)}D(\phi^{(l)}(1))\\
+    \end{pmatrix}
 \end{equation*}
-\begin{proof}
-Let $\phi(s)$ be a family of diffeomorphisms parameterized by the real variable $s$, such that
+where $q=1,2,3$ and $\Delta$ is the step size, rather than Laplacian operator. More explicitly,
 \begin{align*}
-    \frac{d}{ds}\bigg\rvert_{s=0}\phi(s)=v\circ\phi(0)=v\circ\phi&&\triangleright\text{see remark(\ref{remark:2})}
+    \frac{\partial P(\phi(1))}{\partial\phi_q(x_n,t_m)}&=2\sum^N_{j=1}\left(\int^{t_{m+1}}_{t_m}\mathbb{K}(\phi(t))^{-1}_{nj}dt[\phi(x_j,t_m)-\phi(x_j,t_{m+1})]\right)_q\\
+    &+2\sum^N_{j=1}\left(\int^{t_m}_{t_{m-1}}\mathbb{K}(\phi(t))^{-1}_{nj}dt[\phi(x_j,t_m)-\phi(x_j,t_{m-1})]\right)_q\\
+    &+\sum^N_{j=1}[\phi(x_j,t_{m+1})-\phi(x_j,t_m)]^T\frac{\partial\int^{t_{m+1}}_{t_m}\mathbb{K}(\phi(t))^{-1}_{nj}dt}{\partial\phi_q(x_j,t_m)}[\phi(x_j,t_{m+1})-\phi(x_j,t_m)]\\
+    \frac{\partial D(\phi(1))}{\partial\phi_q(x_n,t_m)}&=\delta(t_m-1)(2\Sigma^{-1}_n[y_n-\phi(x_n,1)])_q
 \end{align*}
-denoting $\phi(0)$ with $\phi$.
-
-The variation of the first term
-\begin{align*}
-    \frac{d}{ds}\bigg\rvert_{s=0}E_1(\phi)&=\frac{d}{ds}\bigg\rvert_{s=0}\left(\int_\Omega(1-\sqrt{|D\phi|})^2f(y)dy\right)\\
-    &=\int_\Omega\frac{d}{ds}\bigg\rvert_{s=0}(1-\sqrt{|D\phi|})^2f(y)dy\\
-    &=\int_\Omega2(1-\sqrt{|D\phi|})\frac{d}{ds}\bigg\rvert_{s=0}(1-\sqrt{|D\phi|})f(y)dy\\
-    &=\int_\Omega2(1-\sqrt{|D\phi|})\left(-\frac{d}{ds}\bigg\rvert_{s=0}\sqrt{|D\phi|}\right)f(y)dy\\
-    &=\int_\Omega2f(y)(\sqrt{|D\phi|}-1)\cdot\frac{1}{2}\left(\sqrt{|D\phi|}\mathrm{div}(v)\circ\phi(y)\right)dy \\ &\triangleright\frac{d}{ds}\bigg\rvert_{s=0}\sqrt{|D\phi_s|}=\frac{1}{2}\sqrt{|D\phi|}\mathrm{div}(v)\circ\phi\text{, see remark(\ref{remark:4})}\\
-    &=\int_\Omega f(y)(\sqrt{|D\phi(y)|}-1)\sqrt{|D\phi(y)|}\mathrm{div}(v)\circ\phi(y)dy
-\end{align*}
-
-\begin{remark}\label{remark:4}\cite{hinkle}
-Let $\phi_s$ be a family of irrotational diffeomorphisms indexed by the real variable $s$ and satisfying
+where
 \begin{equation*}
-    \phi_0=\phi, \frac{d}{ds}\bigg\rvert_{s=0}\phi_s=u\circ\phi.
+    \frac{\partial\int^{t_{m+1}}_{t_m}\mathbb{K}(\phi(t))^{-1}_{nj}dt}{\partial\phi_q(x_j,t_m)}=\int^{t_{m+1}}_{t_m}\left(\mathbb{K}(\phi(t))^{-1}\frac{\partial\mathbb{K}(\phi(t))}{\partial\phi_q(x_j,t_m)}\mathbb{K}(\phi(t))^{-1}\right)_{nj}dt
 \end{equation*}
+and $\delta(\cdot)$ is the Dirac delta function.
 
-Then the pushforward of the vector field $u$ is defined as
+\subsection{Image Matching}
+\subsubsection{Problem formulation}
+We view a image as a function $I(x)$ from a domain $\Omega:\mathbb{R}^3\rightarrow\mathbb{R}$, so that $I(x)$ is the intensity value of the image at the point of $x\in\Omega$. Then the deformation fied can be expressed as a function $\phi:\Omega\rightarrow\Omega$. We find $\phi(x)$ by approximately minimizing the energy function
 \begin{equation*}
-    TP(u\circ\phi)=\frac{d}{ds}\bigg\rvert_{s=0}P\phi_s.
+    E(\phi)=\int_\Omega (I_0(x)-I_1(\phi(x)))^2dx,
 \end{equation*}
+where $I_0, I_1$ are source and target images, respectively.
 
-A straightforward computation then yields
+We decompose the solution into two components, a global rigid transformation followed by a deformation that allows soft tissue to align.
+\subsubsection{Rigid Registration}
+In the case of translation, we want to minimize the energy $E$ subject to the condition that $\phi(x)=x+b$, where $b$ is the translation vector. Thus we have
 \begin{align*}
-    TP(u\circ\phi)&=2\frac{d}{ds}\bigg\rvert_{s=0}\sqrt{|D\phi_s|}\\
-    &=\frac{1}{\sqrt{|D\phi|}}\frac{d}{ds}\bigg\rvert_{s=0}|D\phi_s|\\
-    &=\sqrt{|D\phi|}\mathrm{div}(u)\circ\phi\\
+    E(\phi)&=\int_\Omega (I_0(x)-I_1(\phi(x)))^2dx\\
+    \Rightarrow E(b)&=\int_\Omega (I_0(x)-I_1(x+b))^2dx
 \end{align*}
-\end{remark}
-
-By substituting $y$ with $\phi^{-1}(x)$, $dy$ with $|D\phi^{-1}(x)|dx$ and $|D\phi(y)|=\frac{1}{|D\phi^{-1}(x)|}$ (see remark(\ref{remark:1})), we have
+We use a quasi-Newton algorithm\footnote{\url{https://en.wikipedia.org/wiki/Quasi-Newton_method}} to minimize $E(b)$, constructing a sequence $\{b_k\}$ such that $E(b)$ converge to a local minimum. Let $b_{k+1}=b_k+\Delta b_k$
 \begin{align*}
-    \frac{d}{ds}\bigg\rvert_{s=0}E_1(\phi)&=\int_\Omega f(\phi^{-1}(x))\left(\frac{1}{\sqrt{|D\phi^{-1}(x)|}}-1\right)\frac{1}{\sqrt{|D\phi^{-1}(x)|}}\mathrm{div}(v)\circ x|D\phi^{-1}(x)|dx\\
-    &=\int_\Omega f\circ\phi^{-1}(x)(1-\sqrt{|D\phi^{-1}(x)|})\mathrm{div}(v(x))dx\\
-    &=\left< f\circ\phi^{-1}(1-\sqrt{|D\phi^{-1}|}),\mathrm{div}(v)\right>_{L^2(\mathbb{R}^3)}\\
-    &=-\left<\nabla\left(f\circ\phi^{-1}(1-\sqrt{|D\phi^{-1}}\right),v\right>_{L^2(\mathbb{R}^3)}\\
-    &\triangleright\text{adjoint of the divergence is the negative gradient}
+    E(b_{k+1})&\approx\int_\Omega(I_0(x)-[I_1(\phi(x))-\nabla I_1(\phi(x))\cdot\Delta b_k])^2dx\\
+    &\approx\int_\Omega(I_0(x)-I_1(\phi(x))+\nabla I_1(\phi(x))\cdot\Delta b_k)^2dx\\
+    &\approx\int_\Omega(I_0(x)-I_1(\phi(x)))^2+2(I_0(x)-I_1(\phi(x)))(\nabla I_1(\phi(x))\cdot\Delta b_k)+(\nabla I_1(\phi(x))\cdot\Delta b_k)^2dx
 \end{align*}
 
-\begin{remark}\label{remark:1}
+Taking partial derivative on both side of the equation above, we derived
 \begin{align*}
-    \phi\circ\phi^{-1}(x)&=x\\
-    \frac{d\left(\phi\circ\phi^{-1}(x)\right)}{dx}&=\frac{dx}{dx}\\
-    |D\phi(\phi^{-1}(x))|\cdot|D\phi^{-1}(x)|&=1&&\triangleright\text{Chain rule}\\
-    |D\phi(y)|\cdot|D\phi^{-1}(x)|&=1\\
-    |D\phi(y)|&=\frac{1}{|D\phi^{-1}(x)|}\\
-\end{align*}
-\end{remark}
-
-The derivative of the second term
-\begin{align*}
-    \frac{d}{ds}\bigg\rvert_{s=0}E_2(\phi)&=\frac{d}{ds}\bigg\rvert_{s=0}\int_\Omega(\sqrt{I_0}-\sqrt{|D\phi|I_1\circ\phi})^2dy\\
-    &=\frac{d}{ds}\bigg\rvert_{s=0}\int_\Omega I_0(y)-2\sqrt{|D\phi(y)|I_0(y)I_1\circ\phi(y)}+|D\phi(y)|I_1\circ\phi(y)dy\\
-    &=\frac{d}{ds}\bigg\rvert_{s=0}\int I_0(y)-2\sqrt{I_0(y)}\sqrt{I_1\circ\phi(y)}\sqrt{|D\phi(y)|}dy\\
-    &\triangleright \text{constant conservation of mass}\\
-    &=\frac{d}{ds}\bigg\rvert_{s=0}\int -2\sqrt{I_0(y)}\sqrt{I_1\circ\phi(y)}\sqrt{|D\phi(y)|}dy \\
-    & \triangleright I_0(y) \text{ has nothing to do with } s\\
-    &=-2\int\left[\left(\nabla\sqrt{I_1}^Tv\right)\circ\phi(y)\sqrt{I_0(y)}\sqrt{|D\phi(y)|}+\sqrt{I_0(y)I_1\circ\phi(y)}\frac{1}{2}\sqrt{|D\phi(y)|}\mathrm{div}(v)\circ\phi(y)\right]dy\\
-    &\triangleright\text{directional derivative:}\frac{d}{ds}\bigg\rvert_{s=0}(\sqrt{I_1})=\langle\nabla\sqrt{I_1},v\rangle\\
-    &\triangleright\text{By using product rule of derivation and }\frac{d}{ds}\bigg\rvert_{s=0}\sqrt{|D\phi_s|}=\frac{1}{2}\sqrt{|D\phi|}\mathrm{div}(v)\circ\phi\\
-    &=-2\int\sqrt{I_0(y)}\sqrt{|D\phi(y)|}\left(\left(\nabla\sqrt{I_1}^Tv\right)\circ\phi(y)+\frac{1}{2}\sqrt{I_1\circ\phi(y)}\mathrm{div}(v)\circ\phi(y)\right)dy\\
+    \frac{\partial E(b_{k+1})}{\partial \Delta b_k}&\approx\frac{\partial}{\partial \Delta b_k}\int_\Omega(I_0(x)-I_1(\phi(x)))^2dx\\
+    &+\frac{\partial}{\partial \Delta b_k}\int_\Omega2(I_0(x)-I_1(\phi(x)))(\nabla I_1(\phi(x))\cdot\Delta b_k)dx\\
+    &+\frac{\partial}{\partial \Delta b_k}\int_\Omega(\nabla I_1(\phi(x))\cdot\Delta b_k)^2dx\\
+    \frac{\partial E(b_{k+1})}{\partial \Delta b_k}&\approx0+\int_\Omega2(I_0(x)-I_1(\phi(x)))\nabla I_1(\phi(x))dx+\int_\Omega2(\nabla I_1(\phi(x))\cdot\Delta b_k)\cdot\nabla I_1(\phi(x))^T dx
 \end{align*}
 
-\begin{remark}\label{remark:2}
-Let $M$ be a differentiable manifold and $p$ a point of $M$. Suppose that $f$ is a function defined in a neighborhod of $p$, and differentiable at $p$. If $v$ is a tangent vector to $M$ at $p$, then the directional derivative (covariant derivative) is defined by 
-\begin{equation*}
-    \nabla_vf(p)=\frac{d}{ds}\bigg\rvert_{s=0}f\circ\gamma(s)
-\end{equation*}
-where $\gamma$ is a differentiable curve with $\gamma(0)=p, \dot\gamma(0)=v$.
-
-For any smooth function $f$ on a Riemannian manifold $(M, g)$, the gradient of $f$ is the vector field $\nabla f$ such that for any vector field $v$,
-\begin{equation*}
-    g(\nabla f,v)=\langle\nabla f,v\rangle_g=\partial_vf,
-\end{equation*}
-where $g(\cdot,\cdot)$ denotes the inner product w.r.t. metric $g$.
-
-The two expressions above are actually the same.
-\end{remark}
-
-By substituting $y$ with $\phi^{-1}(x)$, $dy$ with $|D\phi^{-1}(x)|dx$ and $|D\phi(y)|=\frac{1}{|D\phi^{-1}(x)|}$, we have
+Setting the gradient to 0, we get
 \begin{align*}
-    \frac{d}{ds}\bigg\rvert_{s=0}E_2(\phi)&=-2\int\sqrt{I_0\circ\phi^{-1}(x)}\frac{1}{\sqrt{D\phi^{-1}(x)}}\left[\nabla\sqrt{I_1(x)}^Tv(x)+\frac{1}{2}\sqrt{I_1(x)}\mathrm{div}(v(x))\right]|D\phi^{-1}(x)|dx\\
-    &=-\int\sqrt{|D\phi^{-1}(x)|I_0\circ\phi^{-1}(x)}\left[2\nabla\sqrt{I_1(x)}^Tv(x)+\sqrt{I_1(x)}\mathrm{div}(v(x))\right]dx\\
-    &=-\left<2\sqrt{|D\phi^{-1}(x)|I_0\circ\phi^{-1}(x)}\cdot\nabla\sqrt{I_1(x)}^T,v(x)\right>_{L^2(\mathbb{R}^3)}-\left<\sqrt{I_0\circ\phi^{-1}(x)I_1(x)|D\phi^{-1}(x)|},\mathrm{div}(v)\right>_{L^2(\mathbb{R}^3)}\\
-    &=-\left<2\sqrt{|D\phi^{-1}(x)|I_0\circ\phi^{-1}(x)}\cdot\nabla\sqrt{I_1(x)}^T,v(x)\right>_{L^2(\mathbb{R}^3)}-\left<\sqrt{I_0\circ\phi^{-1}(x)|D\phi^{-1}(x)|}\sqrt{I_1(x)},\mathrm{div}(v)\right>_{L^2(\mathbb{R}^3)}\\
-    &=-\left<2\sqrt{|D\phi^{-1}(x)|I_0\circ\phi^{-1}(x)}\cdot\nabla\sqrt{I_1(x)}^T,v(x)\right>_{L^2(\mathbb{R}^3)}+\left<\nabla\left(\sqrt{I_0\circ\phi^{-1}(x)|D\phi^{-1}(x)|}\sqrt{I_1(x)}\right),v\right>_{L^2(\mathbb{R}^3)}\\
-    &\triangleright\text{adjoint of the divergence is the negative gradient}\\
-    &=-\left<2\sqrt{|D\phi^{-1}(x)|I_0\circ\phi^{-1}(x)}\cdot\nabla\sqrt{I_1(x)}^T,v(x)\right>_{L^2(\mathbb{R}^3)}\\
-    &+\left<\nabla\left(\sqrt{I_0\circ\phi^{-1}(x)|D\phi^{-1}(x)|}\right)\sqrt{I_1(x)},v\right>_{L^2(\mathbb{R}^3)}+\left<\sqrt{I_0\circ\phi^{-1}(x)|D\phi^{-1}(x)|}\nabla\left(\sqrt{I_1(x)}\right),v\right>_{L^2(\mathbb{R}^3)}\\
-    &=-\left<\sqrt{|D\phi^{-1}(x)|I_0\circ\phi^{-1}(x)}\cdot\nabla\sqrt{I_1(x)}^T,v(x)\right>_{L^2(\mathbb{R}^3)}+\left<\nabla\sqrt{I_0\circ\phi^{-1}(x)I_1(x)|D\phi^{-1}(x)|},v\right>_{L^2(\mathbb{R}^3)}
+    0&=\int_\Omega2(I_0(x)-I_1(\phi(x)))\cdot\nabla I_1(\phi(x))dx+2\int_\Omega(\nabla I_1(\phi(x))\cdot\Delta b_k)\cdot\nabla I_1(\phi(x))^T dx\\
+    0&=\int_\Omega(I_0(x)-I_1(\phi(x)))\cdot\nabla I_1(\phi(x))dx+\Delta b_k\int_\Omega\nabla I_1(\phi(x))\cdot\nabla I_1(\phi(x))^T dx\\
+    \Delta b_k&=\left(\int_\Omega\nabla I_1(\phi(x))\nabla I_1(\phi(x))^Tdx\right)^{-1}\int_\Omega(I_0(x)-I_1(\phi(x)))\nabla I_1(\phi(x))dx
 \end{align*}
 
-From the above equations we conclude that
+In a more general case, we consider $\phi(x)=Ax+b$, and list all these parameters in a single vector
 \begin{equation*}
-    -\Delta(\nabla^{G^I}E)=-\nabla(f\circ\phi^{-1}(1-\sqrt{|D\phi^{-1}|}))-\sqrt{I_0\circ\phi^{-1}(x)|D\phi^{-1}(x)|}\nabla\sqrt{I_1}^T+\nabla(\sqrt{|D\phi^{-1}|I_0\circ\phi^{-1}}\sqrt{I_1},
+    a =
+    \begin{pmatrix}
+    A_{11} & A_{12} & A_{13} & A_{21} & \cdots & A_{32} & A_{33} & b_1 & b_2 & b_3
+    \end{pmatrix}^T
 \end{equation*}
-where $-\Delta(\nabla^{G^I}E)$ is the gradient w.r.t. the $L^2$ metric, $\langle-\Delta(\nabla^{G^I}E),v\rangle$ is the directional derivative in the direction of $v$. Therefore we have $\nabla^{G^I}E=-\Delta^{-1}(-\nabla(f\circ\phi^{-1}(1-\sqrt{|D\phi^{-1}|}))-\sqrt{I_0\circ\phi^{-1}(x)|D\phi^{-1}(x)|}\nabla\sqrt{I_1}^T+\nabla(\sqrt{|D\phi^{-1}|I_0\circ\phi^{-1}}\sqrt{I_1})$.
 
-Since we are taking the sobolev gradient of $E$, we apply the inverse Laplacian to the right hand side of the above equation to solve for $\nabla^{G^I}E$.
-\end{proof}
+Still letting $a_{k+1}=a_k+\Delta a_k$, we can find that
+\begin{equation*}
+    \Delta a_k=\left(\int_\Omega\nabla_a I_1(\phi_a(x))\nabla_aI_1(\phi_a(x))^Tdx\right)^{-1}\int_\Omega(I_0(x)-I_1(\phi_a(x)))\nabla_aI_1(\phi_a(x))dx
+\end{equation*}
+
+We then define the $x=(x_1,x_2,x_3)^T$ in another form of
+\begin{equation*}
+    X=
+    \begin{pmatrix}
+    x_1 & x_2 & x_3 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
+    0 & 0 & 0 & x_1 & x_2 & x_3 & 0 & 0 & 0 & 0 & 1 & 0\\
+    0 & 0 & 0 & 0 & 0 & 0 & x_1 & x_2 & x_3 & 0 & 0 & 1\\
+    \end{pmatrix}
+\end{equation*}
+so that $Ax+b=Xa$. With this convention, $\nabla_aI_1(\phi_a(x))=(\nabla I_1|_{\phi_a(x)})^TX$. $\nabla I_1(\cdot)$ is calculated first, with the result simply evaluated at $\phi_a(x)$. Finally, we have
+\begin{equation*}
+    \Delta a_k=\left(\int_\Omega(\nabla I_1|_{\phi_a(x)})^TX(\nabla I_1|_{\phi_a(x)})X^Tdx\right)^{-1}\int_\Omega(I_0(x)-I_1(\phi_a(x)))(\nabla I_1|_{\phi_a(x)})^TXdx
+\end{equation*}
+
+\subsubsection{Deformable Registration}
+\begin{equation*}
+    E(\phi)=\int_\Omega(I_0(x)-I_1(\phi(x,1)))^2dx+\int^1_0\int_\Omega\|L_{\operatorname{reg}}v(x,t)\|^2dxdt
+\end{equation*}
+The idea is to introduce a time parameter $t$ and define a function $\phi(x,t)$ such that $\phi(x,0)=x$ and $\phi(x,1)$ is the desired deformation field that aligns $I_0$ and $I_1$. We construct $\phi$ as the integral of a time-varying velocity-field
+\begin{equation*}
+    \phi(x,t)=x+\int^t_0v(\phi(x,s),s)ds
+\end{equation*}
+where $L_{\operatorname{reg}}$ is a suitable differential operator and $v$ is the velocity vector field. With proper conditions on $L_{\operatorname{reg}}$, the algorithm produces a diffeomorphism, a differentiable with a differentiable inverse.
+\begin{equation*}
+    E(\phi)=\int_\Omega\left(I_0(x)-I_1\left(x+\int^1_0v(\phi(x,s),s)ds\right)\right)^2dx+\int^1_0\int_\Omega\|L_{\operatorname{reg}}v(x,t)\|^2dxdt
+\end{equation*}
+
+We find that $v$ must satisfy the differential equation
+\begin{equation*}
+    (I_0(x)-I_1(\phi(x,t)))\nabla I_1(\phi(x,t))=Lv(x,t)
+\end{equation*}
+where $L$ is a differential operator proportional to $L_{\operatorname{reg}}^\dagger L_{\operatorname{reg}}$. We choose the operator $Lv=\alpha\nabla^2v+\beta\nabla(\nabla\cdot v)+\gamma v$, a choice motivated by the Navier-Stokes equations for compressible fluid flow with negligible inertia.
+
+\newpage
+\section{LDDMM\cite{beg,tang}}
+\subsection{Introduction}
+LDDMM is an elegant mathematical formulation shows that the velocity field over time generates diffeomorphisms for large deformation diffeomorphic image registration. This framework introduced a distance metric on the space of diffeomorphisms between images, which gave rise to a variational principle that expresses the optimal image registration as a geodesic flow. The advantages of having a distance metric are
+\begin{enumerate}
+    \item it formulates a statistical model of the least square problem via minimization of the sum-of-squared residual distance
+    \item because this distance between images encodes the information of geometric variability, a number of theoretical methods related to LDDMM.
+\end{enumerate}
+
+\subsection{Problem Formulation}
+A image $I_0$ is deformed by a diffeomorphism $\phi$ as $I_0\circ\phi^{-1}$. Given a source image $I_0$ and a target image $I_1$, we minimize the energy function
+\begin{equation*}
+    E(v)=\int^1_0\|Lv(t)\|^2_{L^2}dt+\frac{1}{2\sigma^2}\|I_0\circ\phi^{-1}-I_1\|^2_{L^2}
+\end{equation*}
+which is consisted of a regularization term and a sum-of-squared distance function to estimate diffeomorphic transformation. $\sigma^2$ represents image noise variance. $\|\cdot\|^2_{L^2}$ is equivalent to $|\cdot|^2$.
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.25]{figure/LDDMM.png}
+\caption{Deform an axial of a 3D brain MRI image by $\phi$}
+\end{figure}
+
+\subsection{Gradient Algorithm}
+To ensure that the solution lies in the space of diffeomorphisms, smoothness is achieved by defining the operator $L$ as $L=-\alpha\nabla^2+\gamma I$. In LDDMM, steepest gradient descent approach is used to perform the minimization in energy function and the velocity field at each gradient descent iteration $k$ is updated with
+\begin{equation*}
+    v^{k+1}(t)=v^k(t)-\varepsilon\nabla_{v^k(t)}E(t),
+\end{equation*}
+where $\nabla_vE(t)$ as shown below, is the gradient of the energy function
+\begin{equation}
+    \nabla_vE(t)=2v(t)-K*\left(\frac{1}{\sigma^2}|D\phi_{t,1}^v|\nabla J^0_t(J^0_t-J^1_t)\right)
+\end{equation}
+where $J^0_t=I_0\circ\phi_{t,0}, J^1_t=I_1\circ\phi_{t,1}, \phi_{s,t}=\phi_t\circ\phi^{-1}_s, K=(L^\dagger L)^{-1}$ and $*$ is the convolution.
+
+Let the velocity $v$ be perturbed by an $\varepsilon$ amount along direction $h$. The Gateaux variation $\partial_hE(v)$ of the energy functional is related to its Frechet derivative $\nabla_vE$ by
+\begin{align*}
+    \partial_hE(v)&=\lim_{\varepsilon\rightarrow 0}\frac{E(v+\varepsilon h)-E(v)}{\varepsilon}\\
+    &=\int^1_0\langle\nabla_vE(t),h(t)\rangledt
+\end{align*}
+
+The variation of $E_1(v)=\int^1_0\|v_t\|^2_Vdt=\int^1_0\|Lv_t\|^2_{L^2}dt$ is given by:
+\begin{equation*}
+    \partial_hE_1(v)=2\int^1_0\langle v_t,h_t\rangle_Vdt.
+\end{equation*}
+
+The variation of $E_2(v)=\frac{1}{\sigma^2}\|I_0\circ\phi^v_{1,0}-I_1\|^2_{L^2}$ is
+\begin{align*}
+    \partial_hE_2(v)&=\frac{2}{\sigma^2}\langle I_0\circ\phi^v_{1,0}-I_1,DI_0\circ\phi^v_{1,0}\cdot\partial_h\phi^v_{1,0}\rangle_{L^2}\\
+    &=\frac{2}{\sigma^2}\left< I_0\circ\phi^v_{1,0}-I_1,DI_0\circ\phi^v_{0,1}\cdot\left(-D\phi^v_{1,0}\int^1_0(D\phi^v_{1,t})^{-1}h_t\circ\phi^v_{1,t}dt\right)\right>_{L^2} &&Lemma (1)\\
+    &=-\frac{2}{\sigma^2}\int^1_0\langle(I_0\circ\phi^v_{1,0}-I_1,D(I_0\circ\phi^v_{1,0})\cdot(D\phi^v_{1,t})^{-1}\cdot h_t\circ\phi^v_{1,t}\rangle_{L^2}dt
+\end{align*}
+\begin{lemma}
+The variation of mapping $\phi^v_{s,t}$ when $v\in L^2$ is perturbed along $h\in L^2$ is given by
+\begin{align*}
+    \partial_h\phi^v_{s,t}&=\lim_{\varepsilon\rightarrow0}\frac{\phi^{v+\varepsilon h}_{s,t}-\phi^v_{s,t}}{\varepsilon}\\
+    &=D\phi^v_{s,t}\int^t_s(D\phi^v_{s,t})^{-1}h_u\circ\phi^v_{s,u}du
+\end{align*}
+\end{lemma}
+\begin{align*}
+    \partial_hE_2(v)&=-\frac{2}{\sigma^2}\int^1_0\langle|D\phi^v_{t,1}|(I_0\circ\phi^v_{t,0}-I_1\circ\phi^v_{t,1}),D(I_0\circ\phi^v_{t,0})h_t\rangle_{L^2}dt\\
+    &=-\frac{2}{\sigma^2}\int^1_0\langle|D\phi^v_{t,1}|(J^0_t-j^1_t)\nabla J^0_t,h_t\rangle_{L^2}dt\\
+    &=-\int^1_0\left< K\left(\frac{2}{\sigma^2}|D\phi^v_{t,1}|(J^0_t-J^1_t)\nabla J^0_t\right),h_t\right>_Vdt
+\end{align*}
+where the subscript $V$ indicates the gradient is in the space $V$.
+
+Collecting terms, the gradient of the energy functional is thus
+\begin{equation*}
+    \nabla_vE_t=2v_t-K\left(\frac{2}{\sigma^2}|D\phi^v_{t,1}|\nabla J^0_t(J^0_t-J^1_t)\right )
+\end{equation*}
+The optimizing velocity field satisfies the Euler-Lagrange equation
+\begin{equation*}
+    \partial_hE(\hat{v})=\int^1_0\left<2\hat{v}_t-K\cdot\left(\frac{2}{\sigma^2}|D\phi^\hat{v}_{t,1}|\nabla|J^0_t(J^0_t-J^1_t)\right),t_t\right>_Vdt=0,
+\end{equation*}
+since $h$ is arbitrary in $L^2([0,1],V)$ we get Eq.(4).
+
+In the numerical implementation of LDDMM, the time parameter $t$ of the flow is discretized with a fixed total number of time steps $T$, where $T=10$ is selected as the default descent to terminate with a higher final mismatch error $\|I_0\circ\phi^{-1}-I_1\|^2_{L^2}$ between the registered atlas image and the target image. 
+
+The convolution operation in Eq.(4) is calculated in Fourier domain. The operator $K$ acts as a low pass filter at each iteration of gradient descent and the parameters $\alpha$ and $\gamma$ controls the amount of smoothing and the elasticity of the deformation. Selection of these parameters depends on the size of the deformation necessary to register the features of the atlas image to the features of the target image.
 
 \section{Metric Matching}
 \subsection{Dewitt metric and Ebin metric}
@@ -474,246 +542,6 @@ By substituting Eq.(\ref{alphaphia},\ref{lxa}) into Eq.(\ref{ebinenergy}), we ca
 \end{align*}
 \end{remark}
 
-\subsection{Clarification on Zhe's PyTorch code}
-\subsubsection{Remark on $\operatorname{tr}((B^{-1}A)^2)$ (Kyle method)}
-$A, B$ are positive definite symmetric matrices shown as below:
-\begin{equation*}
-    A=
-    \begin{pmatrix}
-    a_1 & a_3\\
-    a_3 & a_2
-    \end{pmatrix},
-    B=
-    \begin{pmatrix}
-    b_1 & b_3\\
-    b_3 & b_2
-    \end{pmatrix}
-\end{equation*}
-
-Convert $A, B$ to $W$ using Cholesky decomposition
-\begin{align*}
-    W&=L^{-1}A(L^{-1})^T\\
-    LW&=A(L^{-1})^T\\
-    LW&=A(L^T)^{-1}\\
-    LWL^T&=A
-\end{align*}
-
-And the $L,W$ below satisfy the equation above
-\begin{equation*}
-    L=
-    \begin{pmatrix}
-    \sqrt{b_1} & 0\\
-    \frac{b_3}{\sqrt{b_1}} & \sqrt{b_2-\frac{b^2_3}{b_1}}
-    \end{pmatrix},
-    W=
-    \begin{pmatrix}
-    \frac{a_1}{b_1} & \frac{a_3-\frac{a_1b_3}{b_1}}{\sqrt{b_1b_2-b_3^2}}\\
-    \frac{a_3-\frac{a_1b_3}{b_1}}{\sqrt{b_1b_2-b_3^2}} & \frac{a_2-2\cdot\frac{b_3}{b_1}\cdot a_3+\left(\frac{b_3}{b_1}\right)^2\cdot a_1}{b_2-\frac{b^2_3}{b_1}}
-    \end{pmatrix}
-\end{equation*}
-
-\subsubsection{Remark on $\operatorname{tr}((B^{-1}A)^2)$ (General method)}
-\begin{align*}
-    &B\rightarrow GG^T&&\triangleright \text{Cholesky decomposition}\\
-    &G^{-1}AG^{-T}\rightarrow W\\
-    &W\rightarrow Q\Lambda Q^T&&\triangleright \text{Eigen decomposition}\\
-    &\sum_i\log^2(\lambda_i)\rightarrow\operatorname{tr}((B^{-1}A)^2)
-\end{align*}
-
-\subsubsection{Remark on $\log(B^{-1}A)$}
-\begin{align*}
-    &B\rightarrow GG^T&&\triangleright \text{Cholesky decomposition}\\
-    &G^{-1}AG^{-T}\rightarrow W\\
-    &W\rightarrow Q\Lambda Q^T&&\triangleright \text{Eigen decomposition}\\
-    &G^{-T}Q\rightarrow V\\
-    &V\log(\Lambda)V^{-1}\rightarrow\log(B^{-1}A)
-\end{align*}
-
-\subsubsection{Remark on Calculating Ebin Distance}
-Given $K_0=K-\frac{1}{n}\mathrm{tr}(K)I, K=\log(g_0^{-1}g_1)$ and $I,K,K_0\in \mathbb{R}^{n\times n}$
-\begin{align*}
-    K_0^2&=K^2-\frac{2}{n}\mathrm{tr}(K)K+\frac{1}{n^2}\mathrm{tr}^2(K)I\\
-    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{2}{n}\mathrm{tr}(K)\mathrm{tr}(K)+\frac{1}{n^2}\mathrm{tr}^2(K)\mathrm{tr}(I)\\
-    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{2}{n}\mathrm{tr}(K)\mathrm{tr}(K)+\frac{1}{n^2}\mathrm{tr}^2(K)\cdot n&&\triangleright \mathrm{tr}(I)=n\\
-    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{1}{n}\mathrm{tr}^2(K)\\
-    \mathrm{tr}(K^2_0)&=\mathrm{tr}(K^2)-\frac{1}{n}\log^2(\det(g_0^{-1}g_1))&&\triangleright \mathrm{tr}(\log(K))=\log(\det(K))\cite{jacobi}
-\end{align*}
-
-\section{Generating Diffeomorphism}
-\subsection{Divergence free vector field\cite{macedo}}
-Kernel of divergence free $K_{df}$\footnote{Code can be found at \url{https://github.com/aarentai/Metric-Matching-2D/blob/main/GenDiffeo.py}} is defined as below, and the vector fields constructed from linear combination of these kernel is divergence-free. We only discuss the case of $n=2$ here and $\mathbf{p_1}=(x_1,y_1)^T, \mathbf{p_2}=(x_2,y_2)^T$.
-\begin{align*}
-    K_{df}(\mathbf{p_1},\mathbf{p_2})&=\frac{1}{\sigma^2}e^{-\frac{\|\mathbf{p_1}-\mathbf{p_2}\|^2}{2\sigma^2}}\left[\left(\frac{\mathbf{p_1}-\mathbf{p_2}}{\sigma}\right)\left(\frac{\mathbf{p_1}-\mathbf{p_2}}{\sigma}\right)^T+\left((n-1)-\frac{\|\mathbf{p_1}-\mathbf{p_2}\|^2}{\sigma^2}\right)\cdot I\right]\\
-    &=\frac{1}{\sigma^2}e^{-\frac{\|\mathbf{p_1}-\mathbf{p_2}\|^2}{2\sigma^2}}
-    \left[
-    \begin{pmatrix}
-    \frac{(x_1-x_2)(x_1-x_2)}{\sigma^2} & \frac{(x_1-x_2)(y_1-y_2)}{\sigma^2}\\
-    \frac{(y_1-y_2)(x_1-x_2)}{\sigma^2} & \frac{(y_1-y_2)(y_1-y_2)}{\sigma^2}
-    \end{pmatrix}
-    +
-    \begin{pmatrix}
-    1-\frac{\|\mathbf{p_1}-\mathbf{p_2}\|^2}{\sigma^2} & 0\\
-    0 & 1-\frac{\|\mathbf{p_1}-\mathbf{p_2}\|^2}{\sigma^2}
-    \end{pmatrix}
-    \right]\\
-    &=\frac{1}{\sigma^2}e^{-\frac{\|\mathbf{p_1}-\mathbf{p_2}\|^2}{2\sigma^2}}
-    \begin{pmatrix}
-    1-\frac{(y_1-y_2)^2}{\sigma^2} & \frac{(x_1-x_2)(y_1-y_2)}{\sigma^2}\\
-    \frac{(y_1-y_2)(x_1-x_2)}{\sigma^2} & 1-\frac{(x_1-x_2)^2}{\sigma^2}
-    \end{pmatrix}\\
-    &=\frac{1}{\sigma^4}e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}
-    \begin{pmatrix}
-    \sigma^2-(y_1-y_2)^2 & (x_1-x_2)(y_1-y_2)\\
-    (y_1-y_2)(x_1-x_2) & \sigma^2-(x_1-x_2)^2
-    \end{pmatrix}
-\end{align*}
-
-Here we can have the vector field $V$:
-\begin{align}
-    V=
-    \begin{pmatrix}
-        u\\
-        v
-    \end{pmatrix}
-    &=\frac{1}{\sigma^4}e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}
-    \begin{pmatrix}
-    \sigma^2-(y_1-y_2)^2 & (x_1-x_2)(y_1-y_2)\\
-    (y_1-y_2)(x_1-x_2) & \sigma^2-(x_1-x_2)^2
-    \end{pmatrix}
-    \cdot
-    \begin{pmatrix}
-    \alpha\\
-    \beta
-    \end{pmatrix}
-    \label{divfree}
-\end{align}
-
-\begin{proof}
-\begin{align*}
-    \operatorname{div} V&=\frac{\partial u}{\partial x_1}+\frac{\partial v}{\partial y_1}\\
-    &=\frac{\sigma^2-(y_1-y_2)^2}{\sigma^4}\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\frac{2(x_1-x_2)}{-2\sigma^2}\cdot\alpha\\
-    &+\frac{(y_1-y_2)}{\sigma^4}\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\beta+\frac{1}{\sigma^4}\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\frac{2(x_1-x_2)}{-2\sigma^2}\cdot (x_1-x_2)(y_1-y_2)\cdot\beta\\
-    &+\frac{(x_1-x_2)}{\sigma^4}\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\alpha+\frac{1}{\sigma^4}\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\frac{2(y_1-y_2)}{-2\sigma^2}\cdot (y_1-y_2)(x_1-x_2)\cdot\alpha\\
-    &+\frac{\sigma^2-(x_1-x_2)^2}{\sigma^4}\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\frac{2(y_1-y_2)}{-2\sigma^2}\cdot\beta\\
-    &=\left(\frac{\sigma^2-(y_1-y_2)^2}{\sigma^4}\cdot\frac{(x_1-x_2)}{-\sigma^2}+\frac{(x_1-x_2)}{\sigma^4}+\frac{1}{\sigma^4}\cdot (y_1-y_2)(x_1-x_2)\cdot\frac{(y_1-y_2)}{-\sigma^2}\right)e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\alpha\\
-    &+\left(\frac{(y_1-y_2)}{\sigma^4}+\frac{1}{\sigma^4}\cdot (x_1-x_2)(y_1-y_2)\cdot\frac{(x_1-x_2)}{-\sigma^2}+\frac{\sigma^2-(x_1-x_2)^2}{\sigma^4}\cdot\frac{(y_1-y_2)}{-\sigma^2}\right)e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\beta\\
-    &=\frac{\sigma^2(x_1-x_2)-(x_1-x_2)(y_1-y_2)^2-\sigma^2(x_1-x_2)+(x_1-x_2)(y_1-y_2)^2}{-\sigma^6}\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\alpha\\
-    &+\frac{-\sigma^2(y_1-y_2)+(x_1-x_2)^2(y_1-y_2)+\sigma^2(y_1-y_2)-(x_1-x_2)^2(y_1-y_2)}{-\sigma^6}\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\beta\\
-    &=0\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\alpha+0\cdot e^{-\frac{(x_1-x_2)^2+(y_1-y_2)^2}{2\sigma^2}}\cdot\beta=0
-\end{align*}
-\end{proof}
-
-The figure below shows the diffeomorphism and corresponding jacobian generated by divergence free vector field.
-\begin{figure}[H]
-    \centering
-    \begin{subfigure}[t]{0.45\textwidth}
-         \centering
-         \includegraphics[scale=0.42]{figure/divfree.png}
-         \caption{Derived diffeo}
-     \end{subfigure}
-     \begin{subfigure}[t]{0.45\textwidth}
-         \centering
-         \includegraphics[scale=0.5]{figure/divfree_jacobian.png}
-         \caption{Jacobian}
-     \end{subfigure}
-\end{figure}
-
-What we are trying to do is that, given a set of starting points $\mathbf{p}_i=(x_i,y_i)^T$ and ending points $\mathbf{p}'_i=(x_i+dx_i,y_i+dy_i)^T$ and $\mathbf{d}_i=\mathbf{p}'_i-\mathbf{p}_i=(dx_i,dy_i)^T$, the generated vector field $V$ will satisfy $V(\mathbf{p_i})=\mathbf{d}_i=(dx_i,dy_i)^T$. 
-
-We can generate such vector field in the form of linear combination of feature maps $K_{df}(\cdot,\mathbf{p}_i)$ at $\mathbf{p}_i$:
-\begin{equation}
-    V(\mathbf{x})=\sum_iK_{df}(\mathbf{x},\mathbf{p}_i)\cdot\mathbf{w}_i,\label{weighted_sum_kernel}
-\end{equation}
-where $V(\cdot)$ is a RKHS function and $\mathbf{w}_i=(\alpha_i,\beta_i)^T$ is the weight.
-
-\begin{example}
-Given only one pair of starting point $\mathbf{p}=(x,y)^T$ and ending point $\mathbf{p}'=(x+dx,y+dy)^T$, the Eq.(\ref{weighted_sum_kernel}) has the form as below
-\begin{equation*}
-    V(\mathbf{x})=K_{df}(\mathbf{x},\mathbf{p})\cdot\mathbf{w},
-\end{equation*}
-under the constraint that
-\begin{equation*}
-    V(\mathbf{p})=K_{df}(\mathbf{p},\mathbf{p})\cdot\mathbf{w}=
-    \begin{pmatrix}
-    dx\\
-    dy
-    \end{pmatrix}.
-\end{equation*}
-
-Consequently, $\mathbf{w}$ is solved as below
-\begin{equation*}
-    \begin{pmatrix}
-    \frac{1}{\sigma^2} & 0\\
-    0 & \frac{1}{\sigma^2}
-    \end{pmatrix}\cdot
-    \begin{pmatrix}
-    \alpha\\
-    \beta
-    \end{pmatrix}=
-    \begin{pmatrix}
-    dx\\
-    dy
-    \end{pmatrix}\rightarrow
-    \begin{pmatrix}
-    \alpha\\
-    \beta
-    \end{pmatrix}=
-    \begin{pmatrix}
-    \sigma^2\cdot dx\\
-    \sigma^2\cdot dy
-    \end{pmatrix}.
-\end{equation*}
-\end{example}
-
-\begin{example}
-Given $n$ pairs of starting points $\mathbf{p_i}=(x_i,y_i)^T$ and ending points $\mathbf{p_i}'=(x_i+dx_i,y_i+dy_i)^T$, we are to generate the vector field in form of
-\begin{equation*}
-    V(\mathbf{x})=\sum_i^nK_{df}(\mathbf{x},\mathbf{p}_i)\cdot\mathbf{w}_i
-\end{equation*}
-under the $n$ constraints that
-\begin{align*}
-    V(\mathbf{p}_1)=\sum^n_iK_{df}(\mathbf{p}_1&,\mathbf{p}_i)\cdot\mathbf{w}_i=
-    \begin{pmatrix}
-    dx_1\\
-    dy_1
-    \end{pmatrix}\\
-    &\vdots\\
-    V(\mathbf{p}_n)=\sum^n_iK_{df}(\mathbf{p}_n&,\mathbf{p}_i)\cdot\mathbf{w}_i=
-    \begin{pmatrix}
-    dx_n\\
-    dy_n
-    \end{pmatrix}
-\end{align*}
-
-Incorporating all the constraints above in a matrix form, we can have the equation below
-\begin{equation*}
-    \begin{pmatrix}
-    K_{df}(\mathbf{p}_1,\mathbf{p}_1) & K_{df}(\mathbf{p}_1,\mathbf{p}_2) & \cdots & K_{df}(\mathbf{p}_1,\mathbf{p}_n)\\
-    K_{df}(\mathbf{p}_2,\mathbf{p}_1) & K_{df}(\mathbf{p}_2,\mathbf{p}_2) & \cdots & K_{df}(\mathbf{p}_2,\mathbf{p}_n)\\
-    \vdots & \vdots & \ddots & \vdots\\
-    K_{df}(\mathbf{p}_n,\mathbf{p}_1) & K_{df}(\mathbf{p}_n,\mathbf{p}_2) & \cdots & K_{df}(\mathbf{p}_n,\mathbf{p}_n)\\
-    \end{pmatrix}\cdot
-    \begin{pmatrix}
-    \mathbf{w}_1\\
-    \mathbf{w}_2\\
-    \vdots\\
-    \mathbf{w}_n
-    \end{pmatrix}=
-    \begin{pmatrix}
-    \mathbf{d}_1\\
-    \mathbf{d}_2\\
-    \vdots\\
-    \mathbf{d}_n
-    \end{pmatrix}
-\end{equation*}
-
-By moving $\mathbb{K}$ to another side, we can solve the $\mathbf{W}$ easily. Since $K_{df}$ is positive-definite matrix, it guarantees that $\mathbb{K}$'s positive-definiteness, which means that $\mathbb{K}$ is always invertable.
-\begin{align*}
-    &\mathbb{K}\cdot\mathbf{W}=\mathbf{D}\\
-    &\mathbf{W}=\mathbb{K}^{-1}\cdot\mathbf{D}
-\end{align*}
-\end{example}
-
 \section{Appendix}
 \subsection{Geodesic Shooting}
 Given an initial velocity $v_0\in V$, the geodesic path $t\rightarrow\phi_t\in\mathrm{Diff}^\infty(\Omega)$ under the right-invariant Riemannian metric is uniquely determined by the Euler-Poincare equations(EPDiff)
@@ -726,228 +554,6 @@ where $D$ denotes the Jacobian matrix, and the operator $\mathrm{ad}^*$ is the d
 \end{equation*}
 
 By integrating equation (4) forward in time, we generate a time-varying velocity $v_t:[0,1]\rightarrow V$, which itself is subsequently integrated in time by rule $d\phi(x,t)dt=v_t\circ\phi_t(x)$ to arrive at the geodesic path, $\phi(x,t)\in\mathrm{Diff}^s(\Omega)$.
-
-\newpage
-\section{Human Connectome}
-\subsection{Aim 1: Encoding Connectomes via Riemannian Metrics}
-\paragraph{Background}The goal of Aim 1 is to model the individual subject's connectome as a point in the infinite-dimensional space of all Riemannian metrics. In the white matter of the brain, the diffusion of water is restricted perpendicular to the direction of the axons. Thus, the directionality of connections in the brain can be locally inferred as the major eigenvector of the anisotropic diffusion tensors.
-
-However, the inverse diffusion tensor field is not an ideal choice for the Riemannian metric. When using the inverse-tensor metric, geodesics take a shortcut around the high curvature turn of the tract, while geodesics of the conformal Riemannian metric follow the principal eigenvector of the diffusion tensors more faithfully. 
-
-In \cite{hao}, it was assumed that the local Riemannian metric capturing the connectonomics modifies the inverse-tensor estimated from DTI by a spatially varying conformal factor($\alpha$) that causes geodesics to conform more closely to the principal eigenvectors.
-
-\paragraph{Proposed Research: Extending Riemannian Metrics}The method proposed by \cite{hao} has a fundamental limitation that it doesn't generalize to high-angular diffusion-weighted imaging protocol of the human connectome. In the proposed research, we plan to extend the metric estimation problem by allowing the Riemannian metric to vary over the full space of all Riemannian metrics instead of restricting it to a single conformal class.
-
-The completeness of the Riemannian structures is critical to ensure the well-posedness of the regularized inverse problem, which is further discussed in Aim 2.
-
-\subsection{Aim 2: The Geometry of the Manifold of all Riemannian Metrics}
-\paragraph{Background} We will describe a mathematical and statistical framework for data analysis of Riemannian metrics and equip the infinite-dimensional space of all Riemannian metrics with an invariant Riemannian metric and base the statistical framework on this infinite-dimensional geometric structure.
-
-We call the Ebin metric natural as it requires no additional background structure and is consequently invariant under the action of the diffeomorphism group, i.e., $G_g(h,k)=G_{\phi^*g}(\phi^*h,\phi^*k)$ for all $\phi\in\mathrm{Diff}(M),g\in\mathrm{Met}(M),h,k\in T_g\mathrm{Met}(M)$.
-
-The invariance of the infinite-dimensional metric under the group of diffeomorphisms is a crucial property, as it guarantees the independence of an initial choice of coordinate system on the brain manifold.
-
-However, the Ebin metric is missing completeness, which is essential for the proposed statistical studies of the human connectome. Bauer et al. introduced a stronger metrics on the space to overcome the obstructions, which can be written as
-\begin{equation*}
-    G^L(h,k)=\int_M\mathrm{tr}(g^{-1}L_g(h)g^{-1}k)\mathrm{vol}(g)
-\end{equation*}
-where $L:T\mathrm{Met}(M)\rightarrow T\mathrm{Met}(M)$ is a smooth base-point-preserving bundle isomorphism, such that for every $g\in \mathrm{Met}(M)$, the map $L_g:T_g\mathrm{Met}(M)\rightarrow T_g\mathrm{Met}(M)$ is a pseudo differential operator that is symmetric and positive with respect to the metric $G^E$. 
-
-If the operator field $L$ is invariant under the action of $\mathrm{Diff}(M)$, i.e., $\phi^*(L_gh)=L_{\phi^*g}(\phi^* h)$, then the metric $G^L$ inherits this property and satisfies the same invariance property as the Ebin metric.
-
-\paragraph{Proposed Research: Completeness of Metrics}
-
-
-\paragraph{Proposed Research: Registering Human Connectomes}
-Fundamental to the precise characterization and comparison of the human connectome of an individual subject or a population as a whole is the ability to map or register two different human connectomes. LDDMM can register points, curves and surfaces. This framework has now been extended to densities modeled as volume forms. In this proposal, \underline{we will extend the diffeomorphic mapping framework to the connectome which is modeled as Riemannian metrics.}
-
-With a metric that is invariant, the problem of registering two connectomes fits naturally into the framework of computational anatomy the becomes the following minimization problem:
-\begin{equation*}
-    E(\phi)=\sigma\mathrm{dist}^2(\mathrm{id},\phi)+\mathrm{dist}^2(g_0,\phi^*g_1)^2
-\end{equation*}
-The right invariant distance on $\mathrm{Diff}(M)$ is the same as \cite{joshi}.
-
-\paragraph{Proposed Research: Estimating the Average of the Template Connectome of a Population} The existence and uniqueness of the Frechet mean is not guaranteed in general and depend on the completeness and sectional curvature properties of the metric, which are exactly the theoretical goals of previous section. Our statistical framework will be based on the Riemannian structures as described in the first part of Aim 2. We make essential use of the completeness properties of the Riemannian structures to prove well-posedness of the developed statistical framework.
-
-Given a collection of connectomes modeled as points on an abstract Riemannian manifold, we can directly apply the concept of the Frechet mean to define the average connectome.
-
-\paragraph{Proposed Research: Dimensionality Reduction}Principal geodesic analysis (PGA)\cite{pga1,pga2} generalizes PCA to nonlinear manifolds. It describes the geometric variability of manifold data by finding lower dimensional geodesic subspaces that minimize the residual sum-of-squared geodesic distance to the data.
-
-As with the algorithm for estimating the average connectome, the mathematical framework being developed in this proposal will allow us to directly apply the algorithms for performing PGA on collections of connectomes. This will enable us to explicitly visualize and precisely characterize the variability in the architecture of the human connectome of the entire population.
-
-\subsection{Aim 3: Applying the math and statistical framework to DTI}
-
-
-\newpage
-\section{Landmark Matching via Large Deformation Diffeomorphisms\cite{joshi,miller,johnson}}
-\subsection{Objective}
-Assuming that there is a set of landmarks $\{(x_n,y_n)\}$, where $x_n$ and $y_n$ are  our approach is to construct diffeomorphisms $\phi:\Omega\rightarrow\Omega$, such that
-\begin{align}
-    \hat{v}(x,t)&=\argmin_vE(v)+D(\phi(\cdot,1))\\ \nonumber
-    &=\argmin_v \int^1_0\sum_{n=1}^N\|Lv(x_n,t)\|^2_{L^2}dt+\sum^N_{n=1}[y_n-\phi(x_n,1)]^T\Sigma^{-1}_N[y_n-\phi(x_n,1)],
-\end{align}
-where
-\begin{align*}
-    \phi(x,0)&=x\\
-    \phi(x,1)&=x+\int^1_0\Dot{\phi}(x,t)dt\\
-    \Dot{\phi}(x,t)&=\frac{d\phi(x,t)}{dt}=v(\phi(x,t),t)=v_t\circ\phi_t
-\end{align*}
-
-The final time diffeomorphism $\phi(\cdot,1)$ is controlled via the velocity field $v(\cdot,t),t\in[0,1]$. Diffeomorphic landmark transformations are constructed by forcing the velocity fields to minimize quadratic energetic on $\Omega\times[0,1]$, as shown below
-\begin{align*}
-    E(v)&=\int_0^1\int_\Omega\|Lv(x,t)\|^2_{L^2}dxdt\\
-    &=\int_0^1\int_\Omega\sum^{d}_{q=1}|(-\nabla^2+c)v_q(x,t)|^2dxdt
-\end{align*} 
-since $L$ is in form of $L=I\cdot(-\nabla^2+c)$, where $I$ is the identity matrix, $d$ is the dimension of $v$ and $c$ is a constant.
-
-The squared error distance for landmark matching is given by
-\begin{equation*}
-    D(\phi(\cdot,1))=\sum^N_{n=1}[y_n-\phi(x_n,1)]^T\Sigma^{-1}_n[y_n-\phi(x_n,1)],
-\end{equation*}
-where $\Sigma_N$ is the error covariance.
-
-\subsection{Inexact Landmark Matching}
-$L$ is a constant coefficient matrix differential operator with $d\times d$ matrix Green's function $G(x,y)$ which is continuous in both $x$ and $y$. Let $K(x,y)=GG^\dagger(x,y)=(2/\sqrt{2\pi c})e^{-\sqrt{c}\|x-y\|}$, where $K$ is a $d\times d$ matrix function. $K$ is the Green's kernel\cite{ref2}. We define the spatial $Nd\times Nd$ covariance matrix $\mathcal{K}(\phi(t))$ as below
-\begin{equation*}
-    \mathcal{K}(\phi(t))=
-    \begin{pmatrix}
-    K(\phi(x_1,t),\phi(x_1,t))&\cdots&K(\phi(x_1,t),\phi(x_N,t))\\
-    \vdots&\ddots&\vdots\\
-    K(\phi(x_N,t),\phi(x_1,t))&\cdots&K(\phi(x_N,t),\phi(x_N,t))
-    \end{pmatrix}
-\end{equation*}
-
-To express it in a concise way, we have
-\begin{equation*}
-    \mathcal{K}(\phi(t))_{ij}=K(\phi(x_i,t),\phi(x_j,t))
-\end{equation*}
-
-With this, we can rewrite Eq.(1) as
-\begin{equation*}
-    \hat{v}(x,t)=\sum^N_{i=1}K(\phi(x_i,t),x)\sum^N_{j=1}\mathcal{K}(\phi(t))^{-1}_{ij}\Dot{\hat{\phi}}(x_j,t),
-\end{equation*}
-where the minimized velocity fields $\Dot{\hat{\phi}}(x_n,t)$ can be expressed as below
-\begin{equation}
-    \Dot{\hat{\phi}}(x_n,t)=\argmin_{\Dot{\phi}(x_n,\cdot)}\int^1_0\sum^N_{ij=1}\Dot{\phi}(x_i,t)\mathcal{K}(\phi(t))^{-1}_{ij}\Dot{\phi}(x_j,t)dt+\sum^N_{n=1}[y_n-\phi(x_n,1)]^T\Sigma^{-1}_N[y_n-\phi(x_n,1)]
-\end{equation}
-
-Assuming velocities are constant within the quantized time intervals, for $t\in[t_{m-1},t_m)$, we have 
-\begin{equation*}
-    \Dot{\phi}(x_n,t)\approx\frac{\phi(x_n,t_m)-\phi(x_n,t_{m-1})}{\epsilon}
-\end{equation*}
-where $\epsilon$ is the fixed time step size, such that $t_m=m\epsilon$. 
-
-So the Eq.(2) can have the new form of
-\begin{align}
-    \hat{\phi}(x_n,t_m)=\argmin& \frac{1}{\epsilon^2}\sum^M_{m=1}\sum^N_{ij=1}[\phi(x_i,t_m)-\phi(x_i,t_{m-1})]^T\left(\int^{t_m}_{t_{m-1}}\mathcal{K}(\phi(t))^{-1}_{ij}dt\right)[\phi(x_j,t_m)-\phi(x_j,t_{m-1})]\\\nonumber
-    &+\sum^N_{n=1}[y_n-\phi(x_n,1)]^T\Sigma^{-1}_N[y_n-\phi(x_n,1)]
-\end{align}
-
-\subsection{Gradient Algorithm}
-The update rule for minimizing Eq.(3) is shown as below
-\begin{equation*}
-    \phi^{(l+1)}(x_n,t_m)=
-    \begin{pmatrix}
-    \phi_1^{(l)}(x_n,t_m)\\
-    \phi_2^{(l)}(x_n,t_m)\\
-    \phi_3^{(l)}(x_n,t_m)\\
-    \end{pmatrix}-
-    \Delta\times
-    \begin{pmatrix}
-    \frac{\partial}{\partial\phi_1(x_n,t_m)}P(\phi^{(l)}(1))+\frac{\partial}{\partial\phi_1(x_n,t_m)}D(\phi^{(l)}(1))\\
-    \frac{\partial}{\partial\phi_2(x_n,t_m)}P(\phi^{(l)}(1))+\frac{\partial}{\partial\phi_2(x_n,t_m)}D(\phi^{(l)}(1))\\
-    \frac{\partial}{\partial\phi_3(x_n,t_m)}P(\phi^{(l)}(1))+\frac{\partial}{\partial\phi_3(x_n,t_m)}D(\phi^{(l)}(1))\\
-    \end{pmatrix}
-\end{equation*}
-where $q=1,2,3$ and $\Delta$ is the step size, rather than Laplacian operator. More explicitly,
-\begin{align*}
-    \frac{\partial P(\phi(1))}{\partial\phi_q(x_n,t_m)}&=2\sum^N_{j=1}\left(\int^{t_{m+1}}_{t_m}\mathcal{K}(\phi(t))^{-1}_{nj}dt[\phi(x_j,t_m)-\phi(x_j,t_{m+1})]\right)_q\\
-    &+2\sum^N_{j=1}\left(\int^{t_m}_{t_{m-1}}\mathcal{K}(\phi(t))^{-1}_{nj}dt[\phi(x_j,t_m)-\phi(x_j,t_{m-1})]\right)_q\\
-    &+\sum^N_{j=1}[\phi(x_j,t_{m+1})-\phi(x_j,t_m)]^T\frac{\partial\int^{t_{m+1}}_{t_m}\mathcal{K}(\phi(t))^{-1}_{nj}dt}{\partial\phi_q(x_j,t_m)}[\phi(x_j,t_{m+1})-\phi(x_j,t_m)]\\
-    \frac{\partial D(\phi(1))}{\partial\phi_q(x_n,t_m)}&=\delta(t_m-1)(2\Sigma^{-1}_n[y_n-\phi(x_n,1)])_q
-\end{align*}
-where
-\begin{equation*}
-    \frac{\partial\int^{t_{m+1}}_{t_m}\mathcal{K}(\phi(t))^{-1}_{nj}dt}{\partial\phi_q(x_j,t_m)}=\int^{t_{m+1}}_{t_m}\left(\mathcal{K}(\phi(t))^{-1}\frac{\partial\mathcal{K}(\phi(t))}{\partial\phi_q(x_j,t_m)}\mathcal{K}(\phi(t))^{-1}\right)_{nj}dt
-\end{equation*}
-and $\delta(\cdot)$ is the Dirac delta function.
-
-\newpage
-\section{Large Deformation Diffeomorphism Metric Matching\cite{beg,tang}}
-\subsection{Introduction}
-LDDMM is an elegant mathematical formulation shows that the velocity field over time generates diffeomorphisms for large deformation diffeomorphic image registration. This framework introduced a distance metric on the space of diffeomorphisms between images, which gave rise to a variational principle that expresses the optimal image registration as a geodesic flow. The advantages of having a distance metric are
-\begin{enumerate}
-    \item it formulates a statistical model of the least square problem via minimization of the sum-of-squared residual distance
-    \item because this distance between images encodes the information of geometric variability, a number of theoretical methods related to LDDMM.
-\end{enumerate}
-
-\subsection{Objective}
-A image $I_0$ is deformed by a diffeomorphism $\phi$ as $I_0\circ\phi^{-1}$. Given a source image $I_0$ and a target image $I_1$, we minimize the energy function
-\begin{equation*}
-    E(v)=\int^1_0\|Lv(t)\|^2_{L^2}dt+\frac{1}{2\sigma^2}\|I_0\circ\phi^{-1}-I_1\|^2_{L^2}
-\end{equation*}
-which is consisted of a regularization term and a sum-of-squared distance function to estimate diffeomorphic transformation. $\sigma^2$ represents image noise variance. $\|\cdot\|^2_{L^2}$ is equivalent to $|\cdot|^2$.
-\begin{figure}[H]
-\centering
-\includegraphics[scale=0.25]{figure/LDDMM.png}
-\caption{Deform an axial of a 3D brain MRI image by $\phi$}
-\end{figure}
-
-\subsection{Gradient Algorithm}
-To ensure that the solution lies in the space of diffeomorphisms, smoothness is achieved by defining the operator $L$ as $L=-\alpha\nabla^2+\gamma I$. In LDDMM, steepest gradient descent approach is used to perform the minimization in energy function and the velocity field at each gradient descent iteration $k$ is updated with
-\begin{equation*}
-    v^{k+1}(t)=v^k(t)-\varepsilon\nabla_{v^k(t)}E(t),
-\end{equation*}
-where $\nabla_vE(t)$ as shown below, is the gradient of the energy function
-\begin{equation}
-    \nabla_vE(t)=2v(t)-K*\left(\frac{1}{\sigma^2}|D\phi_{t,1}^v|\nabla J^0_t(J^0_t-J^1_t)\right)
-\end{equation}
-where $J^0_t=I_0\circ\phi_{t,0}, J^1_t=I_1\circ\phi_{t,1}, \phi_{s,t}=\phi_t\circ\phi^{-1}_s, K=(L^\dagger L)^{-1}$ and $*$ is the convolution.
-
-Let the velocity $v$ be perturbed by an $\varepsilon$ amount along direction $h$. The Gateaux variation $\partial_hE(v)$ of the energy functional is related to its Frechet derivative $\nabla_vE$ by
-\begin{align*}
-    \partial_hE(v)&=\lim_{\varepsilon\rightarrow 0}\frac{E(v+\varepsilon h)-E(v)}{\varepsilon}\\
-    &=\int^1_0\langle\nabla_vE(t),h(t)\rangledt
-\end{align*}
-
-The variation of $E_1(v)=\int^1_0\|v_t\|^2_Vdt=\int^1_0\|Lv_t\|^2_{L^2}dt$ is given by:
-\begin{equation*}
-    \partial_hE_1(v)=2\int^1_0\langle v_t,h_t\rangle_Vdt.
-\end{equation*}
-
-The variation of $E_2(v)=\frac{1}{\sigma^2}\|I_0\circ\phi^v_{1,0}-I_1\|^2_{L^2}$ is
-\begin{align*}
-    \partial_hE_2(v)&=\frac{2}{\sigma^2}\langle I_0\circ\phi^v_{1,0}-I_1,DI_0\circ\phi^v_{1,0}\cdot\partial_h\phi^v_{1,0}\rangle_{L^2}\\
-    &=\frac{2}{\sigma^2}\left< I_0\circ\phi^v_{1,0}-I_1,DI_0\circ\phi^v_{0,1}\cdot\left(-D\phi^v_{1,0}\int^1_0(D\phi^v_{1,t})^{-1}h_t\circ\phi^v_{1,t}dt\right)\right>_{L^2} &&Lemma (1)\\
-    &=-\frac{2}{\sigma^2}\int^1_0\langle(I_0\circ\phi^v_{1,0}-I_1,D(I_0\circ\phi^v_{1,0})\cdot(D\phi^v_{1,t})^{-1}\cdot h_t\circ\phi^v_{1,t}\rangle_{L^2}dt
-\end{align*}
-\begin{lemma}
-The variation of mapping $\phi^v_{s,t}$ when $v\in L^2$ is perturbed along $h\in L^2$ is given by
-\begin{align*}
-    \partial_h\phi^v_{s,t}&=\lim_{\varepsilon\rightarrow0}\frac{\phi^{v+\varepsilon h}_{s,t}-\phi^v_{s,t}}{\varepsilon}\\
-    &=D\phi^v_{s,t}\int^t_s(D\phi^v_{s,t})^{-1}h_u\circ\phi^v_{s,u}du
-\end{align*}
-\end{lemma}
-\begin{align*}
-    \partial_hE_2(v)&=-\frac{2}{\sigma^2}\int^1_0\langle|D\phi^v_{t,1}|(I_0\circ\phi^v_{t,0}-I_1\circ\phi^v_{t,1}),D(I_0\circ\phi^v_{t,0})h_t\rangle_{L^2}dt\\
-    &=-\frac{2}{\sigma^2}\int^1_0\langle|D\phi^v_{t,1}|(J^0_t-j^1_t)\nabla J^0_t,h_t\rangle_{L^2}dt\\
-    &=-\int^1_0\left< K\left(\frac{2}{\sigma^2}|D\phi^v_{t,1}|(J^0_t-J^1_t)\nabla J^0_t\right),h_t\right>_Vdt
-\end{align*}
-where the subscript $V$ indicates the gradient is in the space $V$.
-
-Collecting terms, the gradient of the energy functional is thus
-\begin{equation*}
-    \nabla_vE_t=2v_t-K\left(\frac{2}{\sigma^2}|D\phi^v_{t,1}|\nabla J^0_t(J^0_t-J^1_t)\right )
-\end{equation*}
-The optimizing velocity field satisfies the Euler-Lagrange equation
-\begin{equation*}
-    \partial_hE(\hat{v})=\int^1_0\left<2\hat{v}_t-K\cdot\left(\frac{2}{\sigma^2}|D\phi^\hat{v}_{t,1}|\nabla|J^0_t(J^0_t-J^1_t)\right),t_t\right>_Vdt=0,
-\end{equation*}
-since $h$ is arbitrary in $L^2([0,1],V)$ we get Eq.(4).
-
-In the numerical implementation of LDDMM, the time parameter $t$ of the flow is discretized with a fixed total number of time steps $T$, where $T=10$ is selected as the default descent to terminate with a higher final mismatch error $\|I_0\circ\phi^{-1}-I_1\|^2_{L^2}$ between the registered atlas image and the target image. 
-
-The convolution operation in Eq.(4) is calculated in Fourier domain. The operator $K$ acts as a low pass filter at each iteration of gradient descent and the parameters $\alpha$ and $\gamma$ controls the amount of smoothing and the elasticity of the deformation. Selection of these parameters depends on the size of the deformation necessary to register the features of the atlas image to the features of the target image
 
 \begin{thebibliography}{99} 
 \bibitem{joshi}Joshi, S.C. and Miller, M.I., 2000. \textit{Landmark matching via large deformation diffeomorphisms}. IEEE transactions on image processing, 9(8), pp.1357-1370.
